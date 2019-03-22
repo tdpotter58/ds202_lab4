@@ -1,7 +1,7 @@
 ---
 title: "Individual 1"
 author: "Tim Potter"
-date: "March 14, 2019"
+date: "March 22, 2019"
 output: html_document
 ---
 
@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+## Lab 4
 
 ```{r}
 library(readxl)
@@ -26,7 +26,7 @@ str(biography)
 
 ## Cleaning
 
-```{r}
+```{r cleaning}
 defClean <- defense %>%
   mutate(Tackles_Solo = as.numeric(Tackles_Solo),
          Tackles_ASST = as.numeric(Tackles_ASST),
@@ -75,3 +75,82 @@ bioClean$Height <- sapply(strsplit(as.character(bioClean$Height),"-"),
         function(x){12*as.numeric(x[1]) + as.numeric(x[2])})
 str(bioClean)
 ```
+
+## Exploration 
+
+```{r exploration}
+defClean <- defClean %>%
+  gather(key = Statistic, value = Count, 3:11)
+defClean %>%
+  ggplot(aes(x = Count)) + geom_histogram(binwidth = 1) + facet_wrap(~Statistic, scales="free")
+
+defClean %>% 
+  spread(key = Opponent, value = Count) %>%
+  filter(Statistic == "Tackles_Solo") %>%
+  ggplot(aes(x = `West Virginia`, y = Kansas, color = Name)) + geom_point() + xlab("West Virginia") + ylab("Kansas") + ggtitle("Solo Tackles per Game by Player")
+
+bioClean <- bioClean %>%
+  separate(Hometown, into = c("City", "State"), sep = ",")
+head(bioClean)
+
+playerPerState <- bioClean %>%
+  group_by(State) %>%
+  summarize(number_players=n()) %>%
+  ungroup()
+playerPerState <- playerPerState[order(-playerPerState$number_players),]
+print.data.frame(playerPerState)
+```
+
+Tidying 1.2)
+  Turnovers are the most rare statistic, while TFL and Sacks are also pretty uncommon.
+
+Tidying 1.3)
+  The defense had a higher number of Solo tackles vs. Kansas, so the defense was better in that game.
+
+```{r joins}
+bioOff <- inner_join(bioClean, offClean, by="Name")
+bioOff %>%
+  ggplot(aes(x = Weight, y = Receiving_YDS, color = Name)) + geom_point() + ylab("Receiving Yards") + ggtitle("Receiving Yards per Game by Player Weight")
+
+bioOff %>%
+  filter(Receiving_YDS > 0) %>%
+  ggplot(aes(x = Weight, y = Receiving_YDS, color = Name)) + geom_point() + ylab("Receiving Yards") + ggtitle("Receiving Yards per Game by Player Weight")
+
+bioDef <- inner_join(bioClean, defClean, by="Name")
+bioDef %>%
+  filter(Statistic == "Tackles_Solo") %>%
+  group_by(State) %>%
+  ggplot(aes(x = State, y = Count, fill = State)) + geom_col() + facet_wrap(~Opponent) + ylab("Solo Tackles") + ggtitle("Solo Tackles per Game by Home State of Player") + theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
+
+bioDef %>%
+  filter(State == " Iowa" & Statistic == "Tackles_Solo" & Count > 0) %>%
+  group_by(Name) %>%
+  ggplot(aes(x = Name, y = Count, fill = Name)) + geom_col()+ ylab("Solo Tackles") + ggtitle("Solo Tackles by Players from Iowa") + theme(axis.text.x=element_blank(), axis.ticks.x=element_blank(), axis.title.x = element_blank())
+
+bioDef %>%
+  filter(State == " Ohio" & Statistic == "Tackles_Solo" & Count > 0) %>%
+  group_by(Name) %>%
+  ggplot(aes(x = Name, y = Count, fill = Name)) + geom_col()+ ylab("Solo Tackles") + ggtitle("Solo Tackles by Players from Ohio") + theme(axis.text.x=element_blank(), axis.ticks.x=element_blank(), axis.title.x = element_blank())
+
+bioDef %>%
+  filter(State == " Fla." & Statistic == "Tackles_Solo" & Count > 0) %>%
+  group_by(Name) %>%
+  ggplot(aes(x = Name, y = Count, fill = Name)) + geom_col()+ ylab("Solo Tackles") + ggtitle("Solo Tackles by Players from Florida") + theme(axis.text.x=element_blank(), axis.ticks.x=element_blank(), axis.title.x = element_blank())
+
+bioDef %>%
+  filter(State == " Texas" & Statistic == "Tackles_Solo" & Count > 0) %>%
+  group_by(Name) %>%
+  ggplot(aes(x = Name, y = Count, fill = Name)) + geom_col()+ ylab("Solo Tackles") + ggtitle("Solo Tackles by Players from Texas") + theme(axis.text.x=element_blank(), axis.ticks.x=element_blank(), axis.title.x = element_blank())
+
+bioDef %>%
+  filter(State == " Calif." & Statistic == "Tackles_Solo" & Count > 0) %>%
+  group_by(Name) %>%
+  ggplot(aes(x = Name, y = Count, fill = Name)) + geom_col()+ ylab("Solo Tackles") + ggtitle("Solo Tackles by Players from California") + theme(axis.text.x=element_blank(), axis.ticks.x=element_blank(), axis.title.x = element_blank())
+```
+
+Joining 1.2)
+  Generally, receiving yards seems to decrease as weight increases. The biggest outlier here is Hakeem Butler, who had far and away the most yards and weighed 225 poinds.
+  
+Joining 1.3) 
+  Question: Where do the best Defensive players come from?
+  Looking at the distribution of Solo Tackles per game, states such as Texas and Florida consistently had the most Solo Tackles, even though Iowa had significantly more players than any other state. Looking at the graphs of tackles by state, it seems that each of those states has a small number of players that get many solo tackles, while Iowa has a more even distribution.
