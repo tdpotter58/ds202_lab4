@@ -75,3 +75,22 @@ bioClean$Height <- sapply(strsplit(as.character(bioClean$Height),"-"),
         function(x){12*as.numeric(x[1]) + as.numeric(x[2])})
 str(bioClean)
 ```
+
+```{r}
+#Part 2 Tidying(1)
+defClean <- defClean %>% gather(key = Statistic, value = Count, 3:11)
+defClean %>% ggplot(aes(x = Count)) + geom_histogram(binwidth = 1) + facet_wrap(~Statistic, scale = "free")
+#2. Turnovers are the least common statistic. TFL and Sacks are also rare.
+
+defClean %>% spread(key = Opponent, value = Count) %>% filter(Statistic == "Tackles_Solo") %>%
+         ggplot(aes(x = `West Virginia`, y = `Kansas State`, color = Name)) + geom_point() +                              xlab("West   Virginia") + ylab("Kansas State") + ggtitle("Solo Tackles per Game by Player")
+#3. We had more solo tackles against Kansas State so we played better against them.
+
+#Part 2 Tidying(2)
+bioClean  <- bioClean %>% separate(Hometown, into = c("City", "State"), sep = ",") 
+head(bioClean)
+
+playerPerState <- bioClean %>% group_by(State) %>% summarize(number_players = n())
+print.data.frame(playerPerState)
+#2. Iowa has the most with 44 playesr. The printed data frame shows the number of players from each state or country.
+```
