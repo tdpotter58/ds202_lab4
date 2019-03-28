@@ -1,0 +1,105 @@
+---
+title: "Lab 4"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+#Michael Bardfield
+```{r}
+library(readxl)
+defense <- read_excel('cyclonesFootball2018.xlsx', sheet='Defensive')
+str(defense)
+offense <- read_excel('cyclonesFootball2018.xlsx', sheet='Offensive')
+str(offense)
+biography <- read_excel('cyclonesFootball2018.xlsx', sheet='Biography')
+str(biography)
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+```
+
+## Part 1: Cleaning 
+
+```{r cleaning}
+defClean <- defense %>%
+  mutate(Tackles_Solo = as.numeric(Tackles_Solo),
+         Tackles_ASST = as.numeric(Tackles_ASST),
+         Tackles_Sack = as.numeric(Tackles_Sack),
+         Tackles_TFL = as.numeric(Tackles_TFL),
+         Turnover_FF = as.numeric(Turnover_FF),
+         Turnover_FR = as.numeric(Turnover_FR),
+         Turnover_INT = as.numeric(Turnover_INT),
+         Pass_QBH = as.numeric(Pass_QBH),
+         Pass_PB = as.numeric(Pass_PB))
+defClean <- defClean %>%
+  rename(Opponent=Opponent_Opponent) %>%
+  mutate(Opponent = factor(Opponent))
+defClean <- defClean %>%
+  mutate(Name = factor(Name))
+str(defClean)
+offClean <- offense %>%
+  rename(Opponent=Opponent_Opponent) %>%
+  mutate(Opponent = factor(Opponent))
+offClean <- offClean %>%
+  mutate(Name = factor(Name))
+offClean <- offClean %>%
+  mutate(Receiving_REC = as.numeric(Receiving_REC),
+         Receiving_YDS = as.numeric(Receiving_YDS),
+         Receiving_TD = as.numeric(Receiving_TD),
+         Rushing_ATT = as.numeric(Rushing_ATT),
+         Rushing_YDS = as.numeric(Rushing_YDS),
+         Rushing_TD = as.numeric(Rushing_TD),
+         Passing_YDS = as.numeric(Passing_YDS),
+         Passing_TD = as.numeric(Passing_TD),
+         Passing_INT = as.numeric(Passing_INT))
+offClean <- offClean %>%
+  separate(`Passing_CMP-ATT`, into = (c("Passing_CMP", "Passing_ATT")))
+offClean[is.na(offClean)] <- 0
+offClean <- offClean %>%
+  mutate(Passing_CMP = as.numeric(Passing_CMP),
+         Passing_ATT = as.numeric(Passing_ATT))
+str(offClean)
+bioClean <- biography %>%
+  mutate(Name = factor(Name),
+         Weight = as.numeric(Weight))
+bioClean$Height <- sapply(strsplit(as.character(bioClean$Height),"-"),
+        function(x){12*as.numeric(x[1]) + as.numeric(x[2])})
+str(bioClean)
+
+```
+
+# Part 2: Tidying
+
+```{r}
+#Part 2 Tidying(1)
+defClean <- defClean %>% gather(key = Statistic, value = Count, 3:11)
+defClean %>% ggplot(aes(x = Count)) + geom_histogram(binwidth = 1) + facet_wrap(~Statistic, scale = "free")
+#2. Turnovers are the least common statistic. TFL and Sacks are also rare.
+
+defClean %>% spread(key = Opponent, value = Count) %>% filter(Statistic == "Tackles_Solo") %>%
+         ggplot(aes(x = `West Virginia`, y = `Kansas State`, color = Name)) + geom_point() +                              xlab("West   Virginia") + ylab("Kansas State") + ggtitle("Solo Tackles per Game by Player")
+#3. We had more solo tackles against Kansas State so we played better against them.
+
+#Part 2 Tidying(2)
+bioClean  <- bioClean %>% separate(Hometown, into = c("City", "State"), sep = ",") 
+head(bioClean)
+
+playerPerState <- bioClean %>% group_by(State) %>% summarize(number_players = n())
+print.data.frame(playerPerState)
+#2. Iowa has the most with 44 playesr. The printed data frame shows the number of players from each state or country.
+
+#Part 3
+bioOffense <- inner_join(bioClean, offClean, by = "Name")
+bioOffense %>% filter(Receiving_YDS > 0) %>% 
+          ggplot(aes(x = Weight, y = Receiving_YDS, color = Name)) + geom_point() + ylab("Receiving Yards") +                 ggtitle("Receiving Yards per Game by Player Weight")
+#2. Recieving yards decrease slighty as weight increases with the exception of Hakeem Butler because Hakeem is an exceptional athlete. 
+
+offClean1 <- offClean %>% filter(Receiving_REC >= 2) %>% mutate(AVG_Receiving_YDS = Receiving_YDS / Receiving_REC)
+q3 <- inner_join(bioClean, offClean1, by = "Name")
+q3 %>% ggplot(aes(x = State, y = AVG_Receiving_YDS, color = Name)) + geom_point() + ylab("Average Receiving Yards per Game")
+#3. What state do the best receivers come from?
+# From the graph we can see the receivers from Maryland(Hakeem Butlerr) and Florida(Tarique Milton) produce the most Avg receiving yards per game. From out team we can say Maryland and Florida produce the best recivers.
+ 
+```
