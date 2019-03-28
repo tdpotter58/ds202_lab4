@@ -70,8 +70,6 @@ str(bioClean)
 
 ```
 
-# Part 2: Tidying
-
 ```{r}
 #Part 2 Tidying(1)
 defClean <- defClean %>% gather(key = Statistic, value = Count, 3:11)
